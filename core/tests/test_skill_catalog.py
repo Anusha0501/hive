@@ -164,6 +164,25 @@ class TestSkillCatalog:
         # … but no descriptions were rendered.
         assert "<description>" not in prompt
 
+    def test_to_prompt_renders_windows_paths_with_forward_slashes(self):
+        """Git Bash treats unquoted backslashes as escapes, so catalog
+        locations must be POSIX-style even when the skill lives on Windows.
+        """
+        loc = r"C:\AI\aden-hive\core\framework\skills\_default_skills\pdf\SKILL.md"
+        catalog = SkillCatalog(
+            [
+                _make_skill(
+                    name="pdf",
+                    location=loc,
+                    base_dir=r"C:\AI\aden-hive\core\framework\skills\_default_skills\pdf",
+                )
+            ]
+        )
+        prompt = catalog.to_prompt()
+        location = prompt.rsplit("<available_skills>", 1)[1].split("<location>", 1)[1].split("</location>", 1)[0]
+        assert "\\" not in location
+        assert location == "C:/AI/aden-hive/core/framework/skills/_default_skills/pdf/SKILL.md"
+
     def test_duplicate_add_overwrites(self):
         """Adding a skill with the same name replaces the previous one."""
         catalog = SkillCatalog()

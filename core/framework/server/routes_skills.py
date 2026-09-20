@@ -273,9 +273,12 @@ def _effective_enabled(
     queen_store: SkillOverrideStore | None,
 ) -> bool:
     # Mirrors ``SkillsManager._apply_overrides`` so the UI's "enabled" column
-    # matches what the queen actually sees in her prompt. An explicit entry
+    # matches what the queen actually sees in her prompt. Tombstoned names
+    # drop out first (same as ``_apply_overrides``). An explicit entry then
     # wins over preset-off-by-default and over the ``all_defaults_disabled``
     # master switch.
+    if queen_store is not None and skill.name in queen_store.deleted_ui_skills:
+        return False
     if queen_store is not None:
         entry = queen_store.get(skill.name)
         if entry is not None and entry.enabled is not None:

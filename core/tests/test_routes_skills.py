@@ -240,6 +240,25 @@ async def test_list_scopes_enumerates_queens_and_colonies(client: TestClient, _s
     assert any(c["name"] == "research_one" for c in data["colonies"])
 
 
+async def test_effective_enabled_false_for_tombstoned_skill(tmp_path: Path) -> None:
+    """Listing must report tombstoned names as disabled, matching _apply_overrides."""
+    from framework.server.routes_skills import _effective_enabled
+    from framework.skills.parser import ParsedSkill
+
+    store = SkillOverrideStore(path=tmp_path / "skills_overrides.json")
+    store.deleted_ui_skills.add("tmp-skill")
+    skill = ParsedSkill(
+        name="tmp-skill",
+        description="d",
+        location="/tmp/tmp-skill/SKILL.md",
+        base_dir="/tmp/tmp-skill",
+        source_scope="queen_ui",
+        body="b",
+    )
+    assert _effective_enabled(skill, store) is False
+    assert _effective_enabled(skill, None) is True
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ skill activation per the Agent Skills standard.
 from __future__ import annotations
 
 import logging
+from pathlib import Path, PureWindowsPath
 from xml.sax.saxutils import escape
 
 from framework.skills.parser import ParsedSkill
@@ -138,6 +139,22 @@ class SkillCatalog:
             return text
         return text[: _DESCRIPTION_CAP_CHARS - 1].rstrip() + "…"
 
+    @staticmethod
+    def _location_for_catalog(location: str) -> str:
+        """Render a skill path that Git Bash, PowerShell, and POSIX shells can ``cat``.
+
+        Native Windows paths use backslashes. ``terminal_exec`` routes through
+        Git Bash on Windows, where an unquoted backslash is an escape character,
+        so ``cat C:\\foo\\SKILL.md`` becomes ``cat C:fooSKILL.md``. Forward
+        slashes are accepted by Git Bash, PowerShell, and POSIX.
+
+        ``PureWindowsPath`` is used when backslashes are present so conversion
+        is correct even when the catalog is rendered on POSIX (tests).
+        """
+        if "\\" in location:
+            return PureWindowsPath(location).as_posix()
+        return Path(location).as_posix()
+
     @classmethod
     def _render_xml(cls, skills: list[ParsedSkill], *, compact: bool) -> str:
         """Render the `<available_skills>` block.
@@ -152,7 +169,7 @@ class SkillCatalog:
             if not compact:
                 capped = cls._cap_description(skill.description)
                 lines.append(f"    <description>{escape(capped)}</description>")
-            lines.append(f"    <location>{escape(skill.location)}</location>")
+            lines.append(f"    <location>{escape(cls._location_for_catalog(skill.location))}</location>")
             lines.append("  </skill>")
         lines.append("</available_skills>")
         return "\n".join(lines)
